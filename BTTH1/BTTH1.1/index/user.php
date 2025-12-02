@@ -1,90 +1,44 @@
 <?php
-session_start();
+// ====== KẾT NỐI PDO ======
+$host = '127.0.0.1';
+$dbname = 'dtbhoa';
+$username = 'root';
+$password = '';
+$dsn = "mysql:host=$host;dbname=$dbname;charset=utf8mb4";
 
-if (isset($_GET['set'])) {
-    if ($_GET['set'] === 'admin') $_SESSION['user_role'] = 'admin';
-    else $_SESSION['user_role'] = 'guest';
-    header('Location: user.php');
-    exit;
+try {
+    $pdo = new PDO($dsn, $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    die("Kết nối thất bại: " . $e->getMessage());
 }
 
-$is_admin = (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin');
-
-// Dữ liệu hoa (giả lập, chưa dùng CSDL)
-require 'hoa.php';
-$success = $_GET['success'] ?? "";
-
+// ====== LẤY DANH SÁCH HOA ======
+$sql_select = "SELECT * FROM hoa ORDER BY id DESC";
+$stmt_select = $pdo->query($sql_select);
 ?>
-
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
-    <meta charset="utf-8">
-    <title>Danh sách hoa</title>
+    <meta charset="UTF-8">
+    <title>Danh sách hoa</title>    
 </head>
 <body>
-    <p>Chế độ: <?php echo $is_admin ? 'Quản trị' : 'Khách'; ?> — 
-       <a href="?set=guest">Chuyển thành Khách</a> |
-       <a href="?set=admin">Chuyển thành Quản trị</a>
-    </p>
+    <h2>Danh Sách Hoa</h2>
+        <p><a href="login.php">Đăng nhập quản trị</a></p>
 
-<?php if ($is_admin): ?>
-    <!-- Admin: hiển thị bảng và CRUD -->
-    <h1>Danh sách hoa (Quản trị)</h1>
-    <p><a href="add.php">Thêm hoa mới</a></p>
-    <table border="1" cellpadding="6" cellspacing="0">
-        <thead>
-            <tr>
-                <th>Tên</th><th>Mô tả</th><th>Ảnh</th><th>Hành động</th>
-            </tr>
-        </thead>
-        <tbody>
-        <?php foreach ($hoa_list as $key => $item): 
 
-            $ten  = htmlspecialchars($item['ten_hoa'] ?? $item['ten'] ?? '');
-            $anh = htmlspecialchars($item['hinh_anh'] ?? '');
-            $mota = htmlspecialchars($item['mota'] ?? $item['mo_ta'] ?? '');
-        ?>
-            <tr>
-                <td><?php echo $ten; ?></td>
-                <td><?php echo $mota; ?></td>
-                <td>
-                    <?php if ($anh): ?>
-                        <img src="<?php echo $anh; ?>" alt="<?php echo $ten; ?>" style="max-width:100px;">
-                    <?php else: ?>
-                        (Chưa có ảnh)
-                    <?php endif; ?>
-
-                <td>
-                    <a href="edit.php?ten=<?php echo urlencode($key); ?>">Sửa</a> |
-                    <a href="delete.php?ten=<?php echo urlencode($key); ?>" onclick="return confirm('Xác nhận xóa?')">Xóa</a>
-                </td>
-            </tr>
-        <?php endforeach; ?>
-        </tbody>
-    </table>
-
-<?php else: ?>
-
-    <!-- Guest: hiển thị list bài viết -->
-
-    <h1>Danh sách hoa</h1>
-    <?php foreach ($hoa_list as $key => $item): 
-        $ten  = htmlspecialchars($item['ten_hoa'] ?? $item['ten'] ?? '');
-        $mota = htmlspecialchars($item['mota'] ?? $item['mo_ta'] ?? '');
-        $anh = htmlspecialchars($item['hinh_anh'] ?? '');
+    <?php
+    // ====== HIỂN THỊ DANH SÁCH HOA ======
+    while ($row = $stmt_select->fetch(PDO::FETCH_ASSOC)) {
+        echo '<div class="flower">';
+        echo '<h3>' . htmlspecialchars($row['ten_hoa']) . '</h3>';
+        echo '<p>' . nl2br(htmlspecialchars($row['mota'])) . '</p>';
+        if (!empty($row['hinh_anh']) && file_exists('uploads/' . $row['hinh_anh'])) {
+            echo '<img src="uploads/' . htmlspecialchars($row['hinh_anh']) . '" alt="' . htmlspecialchars($row['ten_hoa']) . '">';
+        }
+        echo '</div>';
+    }
     ?>
-        <div style="border:1px solid #ccc; padding:12px; margin-bottom:12px;">
-            <h2><?php echo $ten; ?></h2>
-            <?php if ($anh): ?>
-                <img src="<?php echo $anh; ?>" alt="<?php echo $ten; ?>" style="max-width:200px; float:left; margin-right:12px;">
-            <?php endif; ?>
-            <p><?php echo nl2br($mota); ?></p>
-            <div style="clear:both;"></div>
-        </div>
-    <?php endforeach; ?>
-
-<?php endif; ?>
-
 </body>
 </html>
